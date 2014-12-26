@@ -122,5 +122,12 @@ def flip_forever():
         pygame.display.flip()
         time.sleep(1)
 
-draw_all()
-th = thread.start_new(flip_forever, ())
+if __name__ == '__main__':
+    num = 10
+    draw_all(num)
+    th = thread.start_new(flip_forever, ())
+    beats, whole_length = concat_lines(num)
+    from pyo64 import Server
+    server = Server().boot().start()
+    from table import play_the_beats
+    beat = play_the_beats(server, beats, whole_length)
