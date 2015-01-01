@@ -1,6 +1,6 @@
 import pygame.display
 import pygame.draw
-import thread
+import threading
 import time
 
 LINES = [(i, 1 + int(i % 3 == 0)) for i in range(12)]
@@ -95,6 +95,7 @@ step = 30
 screen = pygame.display.set_mode(size)
 white = 255, 255, 255
 black = 0, 0, 0
+number_of_interpolation_steps = 10
 
 
 def draw_lines(offset, lines):
@@ -107,27 +108,45 @@ def draw_lines(offset, lines):
         )
 
 
-def draw_all(num=10):
-    for i in range(0, num):
-        g = i / float(num)
+def draw_all():
+    for i in range(0, number_of_interpolation_steps):
+        g = i / float(number_of_interpolation_steps)
         line, length = transform_lines(g)
         draw_lines(i, line)
 
 
-forever = True
-
-
-def flip_forever():
-    while forever:
+def flip_forever(delay_seconds):
+    while flip_forever.forever:
+        screen.fill(black)
+        draw_all()
         pygame.display.flip()
-        time.sleep(1)
+        time.sleep(delay_seconds)
+
+flip_forever.forever = True
+
+
+def event_loop():
+    while flip_forever.forever:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
 
 if __name__ == '__main__':
-    num = 10
-    draw_all(num)
-    th = thread.start_new(flip_forever, ())
-    beats, whole_length = concat_lines(num)
+    number_of_interpolation_steps = 10
+    draw_all()
+    th = threading.Thread(target=flip_forever, args=(0.1,))
+    th.start()
+    beats, whole_length = concat_lines(number_of_interpolation_steps)
     from pyo64 import Server
     server = Server().boot().start()
     from table import play_the_beats
     beat = play_the_beats(server, beats, whole_length)
+
+    try:
+        event_loop()
+    except KeyboardInterrupt:
+        pass
+
+    print "waiting for draw thread to exit"
+    flip_forever.forever = False
+    th.join()
